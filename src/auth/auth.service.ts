@@ -10,12 +10,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { LoginUserDto } from './dto/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly jwtService: JwtService,
   ) {}
 
   private readonly logger = new Logger('AuthService');
@@ -46,5 +48,21 @@ export class AuthService {
     }
   }
 
-  async login(loginUserDto: LoginUserDto) {}
+  async login(loginUserDto: LoginUserDto) {
+    const user = await this.userRepository.findOne({
+      where: { email: loginUserDto.email },
+    });
+
+    if (!bcrypt.compareSync(loginUserDto.password, user.password)) {
+      throw new NotFoundException(`Invalid login`);
+    }
+
+    delete user.password;
+    const token = this.jwtService.sign({ userId: user.id });
+    return {
+      message: 'Logged in successfully',
+      statusCode: 200,
+      token,
+    };
+  }
 }
