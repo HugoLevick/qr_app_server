@@ -54,7 +54,6 @@ export class AuthService {
       where: { email: loginUserDto.email },
     });
 
-    console.log(user);
     if (!bcrypt.compareSync(loginUserDto.password, user.password)) {
       throw new NotFoundException(`Invalid login`);
     }
