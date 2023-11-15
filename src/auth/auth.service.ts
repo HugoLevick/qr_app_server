@@ -50,9 +50,11 @@ export class AuthService {
 
   async login(loginUserDto: LoginUserDto) {
     const user = await this.userRepository.findOne({
+      select: { password: true },
       where: { email: loginUserDto.email },
     });
 
+    console.log(user);
     if (!bcrypt.compareSync(loginUserDto.password, user.password)) {
       throw new NotFoundException(`Invalid login`);
     }
