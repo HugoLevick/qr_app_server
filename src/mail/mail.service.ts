@@ -10,8 +10,10 @@ export class MailService {
   public async sendRegistrationEmail(
     sendRegistrationEmailI: SendRegistrationEmailInterface,
   ) {
+    //Self url
+    const url = `${process.env.HOST_ADDRESS}:${process.env.HOST_PORT}`;
     const { email: recipient, name, token } = sendRegistrationEmailI;
-    const confirmationLink = `${process.env.HOST_ADDRESS}/api/auth/verify?token=${token}`;
+    const confirmationLink = `${url}/api/auth/verify?token=${token}`;
     await this.mailerService
       .sendMail({
         to: recipient, // list of receivers
@@ -21,11 +23,8 @@ export class MailService {
         context: {
           name,
           confirmationLink,
-          logoSrc: `${process.env.HOST_ADDRESS}/img/logo-email.webp`,
+          logoSrc: `${url}/img/logo-email.webp`,
         },
-      })
-      .then((res) => {
-        console.log(res);
       })
       .catch((err) => {
         console.log(err);

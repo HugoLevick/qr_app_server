@@ -3,6 +3,9 @@ import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { VerifyUserDto } from './dto/verify-user.dto';
+import { Auth } from './decorators/auth.decorator';
+import { GetUser } from './decorators/get-user.decorator';
+import { User } from './entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -20,8 +23,14 @@ export class AuthController {
     return this.authService.login(loginUserDto);
   }
 
+  @Auth()
+  @Get('validate')
+  validateToken(@GetUser() user: User) {
+    return user;
+  }
+
   @Get('verify')
-  verify(@Query() verifyUserDto: VerifyUserDto) {
+  verifyUser(@Query() verifyUserDto: VerifyUserDto) {
     return this.authService.verify(verifyUserDto);
   }
 }
