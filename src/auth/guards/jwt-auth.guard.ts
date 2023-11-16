@@ -24,6 +24,11 @@ export class JwtAuthGuard implements CanActivate {
     const usuario: User = req.user;
     if (!usuario) throw new UnauthorizedException();
 
+    if (!usuario.verified)
+      throw new UnauthorizedException(
+        `Usuario no verificado. Confirma tu email.`,
+      );
+
     if (!validRolesString || validRolesString.length === 0) return true;
 
     throw new ForbiddenException(`User ${usuario.name} needs a valid role`);
