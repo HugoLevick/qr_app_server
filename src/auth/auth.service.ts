@@ -66,11 +66,13 @@ export class AuthService {
       where: { email: loginUserDto.email },
     });
 
+    if (!user) throw new NotFoundException(`Credenciales incorrectas`);
+
     if (!user.verified)
       throw new UnauthorizedException(`Usuario no verificado`);
 
     if (!bcrypt.compareSync(loginUserDto.password, user.password)) {
-      throw new NotFoundException(`Invalid login`);
+      throw new NotFoundException(`Credenciales incorrectas`);
     }
 
     delete user.password;
