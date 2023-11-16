@@ -11,12 +11,16 @@ import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import { CommonService } from 'src/common/common.service';
+import { handleDbError } from 'src/common/helpers/handle-db-error';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly mailService: MailService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -32,7 +36,6 @@ export class AuthService {
   }
 
   async register(createUserDto: CreateUserDto) {
-    console.log(createUserDto);
     const user = this.userRepository.create({
       ...createUserDto,
       password: bcrypt.hashSync(createUserDto.password, 10),
@@ -41,8 +44,14 @@ export class AuthService {
     try {
       await this.userRepository.save(user);
       delete user.password;
+      await this.mailService.sendRegistrationEmail({
+        email: user.email,
+        name: user.name,
+        token: this.jwtService.sign({ userId: user.id }),
+      });
       return user;
     } catch (error) {
+      handleDbError(error);
       this.logger.error(error);
       throw new InternalServerErrorException();
     }

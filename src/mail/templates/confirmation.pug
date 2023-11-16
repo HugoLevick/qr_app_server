@@ -1,0 +1,21 @@
+doctype html
+html
+  head
+    title Email Confirmation
+  body
+    table
+      tr
+        td(style="text-align: center; padding: 20px;")
+          img(src=logoSrc, alt="Logo QR App", style="max-width: 150px;")
+      tr
+        td(style="text-align: center; padding: 20px;")
+          h2(style="color: #333;") ¡Hola, #{name}!
+      tr
+        td(style="padding: 20px;")
+          p(style="font-size: 16px;") Gracias por registrarte en la aplicación, confirma tu correo electrónico aquí:
+      tr
+        td(style="padding: 20px; text-align: center;")
+          a(href=confirmationLink, style="display: inline-block; padding: 10px 20px; background-color: #000; color: #fff; text-decoration: none; border-radius: 5px;") Confirmar Correo.
+      tr
+        td(style="padding: 20px;")
+          p(style="font-size: 16px;") Si no fuiste tú, ignora este correo.
