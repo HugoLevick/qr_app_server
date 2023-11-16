@@ -3,6 +3,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -11,9 +12,10 @@ import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { LoginUserDto } from './dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
-import { CommonService } from 'src/common/common.service';
 import { handleDbError } from 'src/common/helpers/handle-db-error';
 import { MailService } from 'src/mail/mail.service';
+import { VerifyUserDto } from './dto/verify-user.dto';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -42,11 +44,12 @@ export class AuthService {
     });
 
     try {
-      await this.userRepository.save(user);
+      await this.userRepository.insert(user);
       delete user.password;
       await this.mailService.sendRegistrationEmail({
         email: user.email,
         name: user.name,
+        //Todo: expirar token en 1 hora
         token: this.jwtService.sign({ userId: user.id }),
       });
       return user;
@@ -63,6 +66,9 @@ export class AuthService {
       where: { email: loginUserDto.email },
     });
 
+    if (!user.verified)
+      throw new UnauthorizedException(`Usuario no verificado`);
+
     if (!bcrypt.compareSync(loginUserDto.password, user.password)) {
       throw new NotFoundException(`Invalid login`);
     }
@@ -74,5 +80,19 @@ export class AuthService {
       statusCode: 200,
       token,
     };
+  }
+
+  async verify({ token }: VerifyUserDto) {
+    try {
+      const { userId }: JwtPayload = this.jwtService.verify(token);
+      const user = await this.findOne(userId);
+
+      user.verified = true;
+      await this.userRepository.save(user);
+      return 'Usuario verificado exitosamente. Ya puedes iniciar sesión';
+    } catch (error) {
+      this.logger.error(error);
+      throw new UnauthorizedException(`Invalid token`);
+    }
   }
 }

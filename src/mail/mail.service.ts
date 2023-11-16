@@ -11,7 +11,7 @@ export class MailService {
     sendRegistrationEmailI: SendRegistrationEmailInterface,
   ) {
     const { email: recipient, name, token } = sendRegistrationEmailI;
-    const confirmationLink = `${process.env.HOST_ADDRESS}/api/auth/confirm?token=${token}`;
+    const confirmationLink = `${process.env.HOST_ADDRESS}/api/auth/verify?token=${token}`;
     await this.mailerService
       .sendMail({
         to: recipient, // list of receivers

@@ -1,10 +1,8 @@
-import { Controller, Get, Post, Body, Param, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, HttpCode } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { Auth } from './decorators/auth.decorator';
-import { GetUser } from './decorators/get-user.decorator';
-import { User } from './entities/user.entity';
+import { VerifyUserDto } from './dto/verify-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -22,9 +20,8 @@ export class AuthController {
     return this.authService.login(loginUserDto);
   }
 
-  @Auth()
   @Get('verify')
-  verify(@GetUser() user: User) {
-    return user;
+  verify(@Query() verifyUserDto: VerifyUserDto) {
+    return this.authService.verify(verifyUserDto);
   }
 }
