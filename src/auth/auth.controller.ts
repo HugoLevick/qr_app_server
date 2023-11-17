@@ -6,6 +6,7 @@ import { VerifyUserDto } from './dto/verify-user.dto';
 import { Auth } from './decorators/auth.decorator';
 import { GetUser } from './decorators/get-user.decorator';
 import { User } from './entities/user.entity';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -32,5 +33,10 @@ export class AuthController {
   @Get('verify')
   verifyUser(@Query() verifyUserDto: VerifyUserDto) {
     return this.authService.verify(verifyUserDto);
+  }
+
+  @Post('resetPassword')
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

@@ -16,6 +16,7 @@ import { handleDbError } from 'src/common/helpers/handle-db-error';
 import { MailService } from 'src/mail/mail.service';
 import { VerifyUserDto } from './dto/verify-user.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -96,5 +97,26 @@ export class AuthService {
       this.logger.error(error);
       throw new UnauthorizedException(`Invalid token`);
     }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { email } = resetPasswordDto;
+    const user = await this.userRepository.findOne({
+      select: { verified: true, name: true },
+      where: { email: resetPasswordDto.email },
+    });
+
+    if (user && user.verified)
+      this.mailService.sendForgotPasswordEmail({
+        email: email,
+        name: user.name,
+        token: this.jwtService.sign({ userId: user.id }, { expiresIn: '1h' }),
+      });
+
+    return {
+      message:
+        'Si el correo está registrado, se envió un correo para reestablecer la contraseña',
+      statusCode: 200,
+    };
   }
 }

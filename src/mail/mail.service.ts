@@ -1,19 +1,18 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
-import { User } from 'src/auth/entities/user.entity';
-import { SendRegistrationEmailInterface } from './interfaces/send-registration-email.interface';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { SendEmailInterface } from './interfaces/send-registration-email.interface';
 
 @Injectable()
 export class MailService {
   constructor(private mailerService: MailerService) {}
 
-  public async sendRegistrationEmail(
-    sendRegistrationEmailI: SendRegistrationEmailInterface,
-  ) {
+  private url = `${process.env.HOST_ADDRESS}:${process.env.HOST_PORT}`;
+  private logoSrc = `${this.url}/img/logo-email.webp`;
+
+  public async sendRegistrationEmail(sendEmailI: SendEmailInterface) {
     //Self url
-    const url = `${process.env.HOST_ADDRESS}:${process.env.HOST_PORT}`;
-    const { email: recipient, name, token } = sendRegistrationEmailI;
-    const confirmationLink = `${url}/api/auth/verify?token=${token}`;
+    const { email: recipient, name, token } = sendEmailI;
+    const confirmationLink = `${this.url}/api/auth/verify?token=${token}`;
     await this.mailerService
       .sendMail({
         to: recipient, // list of receivers
@@ -23,13 +22,34 @@ export class MailService {
         context: {
           name,
           confirmationLink,
-          logoSrc: `${url}/img/logo-email.webp`,
+          logoSrc: this.logoSrc,
         },
       })
       .catch((err) => {
         console.log(err);
+        throw new InternalServerErrorException();
       });
   }
 
-  preview() {}
+  public async sendForgotPasswordEmail(sendEmailI: SendEmailInterface) {
+    //Self url
+    const { email: recipient, name, token } = sendEmailI;
+    const passwordLink = `${this.url}/auth/resetPassword.html?token=${token}`;
+    await this.mailerService
+      .sendMail({
+        to: recipient, // list of receivers
+        from: process.env.MAIL_USER, // sender address
+        subject: 'Reestablece tu contraseña de QR App aquí', // Subject line
+        template: './forgot-password', // HTML body content
+        context: {
+          name,
+          passwordLink,
+          logoSrc: this.logoSrc,
+        },
+      })
+      .catch((err) => {
+        console.log(err);
+        throw new InternalServerErrorException();
+      });
+  }
 }

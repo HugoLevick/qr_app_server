@@ -18,6 +18,6 @@ export class User {
   @Column('enum', { enum: RolesEnum, default: RolesEnum.USER })
   role: RolesEnum;
 
-  @Column('bool', { default: false, nullable: false })
+  @Column('bool', { default: false, nullable: false, select: false })
   verified: boolean;
 }
