@@ -27,6 +27,7 @@ export class AuthController {
   @Auth()
   @Get('validate')
   validateToken(@GetUser() user: User) {
+    delete user.verified;
     return user;
   }
 

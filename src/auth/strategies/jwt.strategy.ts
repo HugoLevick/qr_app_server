@@ -10,7 +10,7 @@ import { User } from '../entities/user.entity';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectRepository(User)
-    private readonly usuarioRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
   ) {
     super({
       secretOrKey: process.env.JWT_SECRET,
@@ -21,9 +21,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<User> {
     const { userId } = payload;
 
-    const user = await this.usuarioRepository.findOne({
-      where: { id: userId },
-    });
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user', 'user.verified'])
+      .where('id = :userId', { userId })
+      .getOne();
 
     if (!user) throw new UnauthorizedException('Token not valid');
 

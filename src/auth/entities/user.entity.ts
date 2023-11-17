@@ -9,6 +9,9 @@ export class User {
   @Column('text', { nullable: false })
   name: string;
 
+  @Column('text', { nullable: false })
+  lastName: string;
+
   @Column('text', { select: false, nullable: false })
   password: string;
 

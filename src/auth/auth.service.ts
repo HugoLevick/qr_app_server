@@ -18,6 +18,11 @@ import { VerifyUserDto } from './dto/verify-user.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
+interface EmailSelectOptions {
+  selectPassword?: boolean;
+  selectVerified?: boolean;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -33,6 +38,25 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException(`User with id '${id}' not found`);
+    }
+
+    return user;
+  }
+
+  async findOneByEmail(email: string, selectOptions: EmailSelectOptions = {}) {
+    const { selectPassword = false, selectVerified = false } = selectOptions;
+    let selection = ['user'];
+    if (selectPassword) selection.push('user.password');
+    if (selectVerified) selection.push('user.verified');
+
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .select(selection)
+      .where('email = :email', { email })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException(`User with email '${email}' not found`);
     }
 
     return user;
@@ -62,12 +86,15 @@ export class AuthService {
   }
 
   async login(loginUserDto: LoginUserDto) {
-    const user = await this.userRepository.findOne({
-      select: { password: true, verified: true },
-      where: { email: loginUserDto.email },
-    });
-
-    if (!user) throw new NotFoundException(`Credenciales incorrectas`);
+    let user: User;
+    try {
+      user = await this.findOneByEmail(loginUserDto.email, {
+        selectPassword: true,
+        selectVerified: true,
+      });
+    } catch (error) {
+      throw new NotFoundException(`Credenciales incorrectas`);
+    }
 
     if (!user.verified)
       throw new UnauthorizedException(`Usuario no verificado`);
