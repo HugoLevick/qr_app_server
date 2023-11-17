@@ -1,3 +1,7 @@
-export class JwtPayload {
+export class AuthJwtPayload {
   userId: string;
+}
+
+export class PasswordResetJwtPayload {
+  resetId: number;
 }

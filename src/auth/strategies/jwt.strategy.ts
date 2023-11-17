@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UnauthorizedException, Injectable } from '@nestjs/common';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { AuthJwtPayload } from '../interfaces/jwt-payload.interface';
 import { User } from '../entities/user.entity';
 
 @Injectable()
@@ -18,8 +18,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<User> {
+  async validate(payload: AuthJwtPayload): Promise<User> {
     const { userId } = payload;
+
+    if (!userId) throw new UnauthorizedException('Token not valid');
 
     const user = await this.userRepository
       .createQueryBuilder('user')

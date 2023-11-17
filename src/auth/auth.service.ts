@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,8 +16,15 @@ import { JwtService } from '@nestjs/jwt';
 import { handleDbError } from 'src/common/helpers/handle-db-error';
 import { MailService } from 'src/mail/mail.service';
 import { VerifyUserDto } from './dto/verify-user.dto';
-import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  AuthJwtPayload,
+  PasswordResetJwtPayload,
+} from './interfaces/jwt-payload.interface';
+import {
+  RequestPasswordEmailDto,
+  ResetPasswordDto,
+} from './dto/reset-password.dto';
+import { PasswordReset } from './entities/password-reset.entity';
 
 interface EmailSelectOptions {
   selectPassword?: boolean;
@@ -28,6 +36,8 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(PasswordReset)
+    private readonly passwordResetRepository: Repository<PasswordReset>,
     private readonly mailService: MailService,
     private readonly jwtService: JwtService,
   ) {}
@@ -114,7 +124,7 @@ export class AuthService {
 
   async verify({ token }: VerifyUserDto) {
     try {
-      const { userId }: JwtPayload = this.jwtService.verify(token);
+      const { userId }: AuthJwtPayload = this.jwtService.verify(token);
       const user = await this.findOne(userId);
 
       user.verified = true;
@@ -126,24 +136,73 @@ export class AuthService {
     }
   }
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+  async requestPasswordEmail(resetPasswordDto: RequestPasswordEmailDto) {
     const { email } = resetPasswordDto;
     const user = await this.userRepository.findOne({
-      select: { verified: true, name: true },
+      select: { id: true, name: true, verified: true },
       where: { email: resetPasswordDto.email },
     });
 
-    if (user && user.verified)
+    if (user && user.verified) {
+      const passwordReset = this.passwordResetRepository.create({
+        user,
+      });
+
+      try {
+        await this.passwordResetRepository.insert(passwordReset);
+      } catch (error) {
+        this.logger.error(error);
+        throw new InternalServerErrorException();
+      }
       this.mailService.sendForgotPasswordEmail({
         email: email,
         name: user.name,
-        token: this.jwtService.sign({ userId: user.id }, { expiresIn: '1h' }),
+        token: this.jwtService.sign(
+          { resetId: passwordReset.id },
+          { expiresIn: '1h' },
+        ),
       });
+    }
 
     return {
       message:
         'Si el correo está registrado, se envió un correo para reestablecer la contraseña',
       statusCode: 200,
     };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { newPassword, token } = resetPasswordDto;
+    let resetId: number;
+    try {
+      const payload: PasswordResetJwtPayload = this.jwtService.verify(token);
+      resetId = payload.resetId;
+    } catch (error) {
+      throw new BadRequestException(`Invalid token`);
+    }
+
+    const passwordReset = await this.passwordResetRepository.findOne({
+      where: { id: resetId },
+      relations: { user: true },
+    });
+
+    if (!passwordReset)
+      throw new BadRequestException(`Invalid token (reset id not found)`);
+
+    if (passwordReset.used) throw new BadRequestException('Token ya utilizado');
+
+    passwordReset.user.password = bcrypt.hashSync(newPassword, 10);
+
+    try {
+      await this.userRepository.save(passwordReset.user);
+      passwordReset.used = true;
+      await this.passwordResetRepository.save(passwordReset);
+      return { message: 'Contraseña cambiada exitosamente' };
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        'No se pudo cambiar la contraseña',
+      );
+    }
   }
 }

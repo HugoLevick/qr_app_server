@@ -1,5 +1,6 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { RolesEnum } from '../enums/roles.enum';
+import { PasswordReset } from './password-reset.entity';
 
 @Entity('users')
 export class User {
@@ -23,4 +24,7 @@ export class User {
 
   @Column('bool', { default: false, nullable: false, select: false })
   verified: boolean;
+
+  @OneToMany(() => PasswordReset, (passwordReset) => passwordReset.user)
+  passwordResets: PasswordReset[];
 }

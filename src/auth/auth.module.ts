@@ -8,11 +8,12 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { CommonModule } from 'src/common/common.module';
 import { MailModule } from 'src/mail/mail.module';
+import { PasswordReset } from './entities/password-reset.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, PasswordReset]),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
