@@ -14,7 +14,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const validRolesString: string[] = this.reflector.get(
+    const validRoles: string[] = this.reflector.get(
       META_ROLES,
       context.getHandler(),
     );
@@ -29,7 +29,9 @@ export class JwtAuthGuard implements CanActivate {
         `Usuario no verificado. Confirma tu email.`,
       );
 
-    if (!validRolesString || validRolesString.length === 0) return true;
+    if (!validRoles || validRoles.length === 0) return true;
+
+    if (validRoles.includes(usuario.role)) return true;
 
     throw new ForbiddenException(`User ${usuario.name} needs a valid role`);
   }

@@ -26,7 +26,9 @@ import {
 } from './dto/reset-password.dto';
 import { PasswordReset } from './entities/password-reset.entity';
 
-interface EmailSelectOptions {
+interface UserFindOptions {
+  method: 'email' | 'id';
+  toFind: string;
   selectPassword?: boolean;
   selectVerified?: boolean;
 }
@@ -44,37 +46,48 @@ export class AuthService {
 
   private readonly logger = new Logger('AuthService');
 
-  async findOne(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with id '${id}' not found`);
-    }
-
-    return user;
-  }
-
-  async findOneByEmail(email: string, selectOptions: EmailSelectOptions = {}) {
-    const { selectPassword = false, selectVerified = false } = selectOptions;
+  async findOneBy(selectOptions: UserFindOptions) {
+    const {
+      method,
+      toFind,
+      selectPassword = false,
+      selectVerified = false,
+    } = selectOptions;
     let selection = ['user'];
     if (selectPassword) selection.push('user.password');
     if (selectVerified) selection.push('user.verified');
 
-    const user = await this.userRepository
+    const query = this.userRepository
       .createQueryBuilder('user')
-      .select(selection)
-      .where('email = :email', { email })
-      .getOne();
+      .select(selection);
+
+    switch (method) {
+      case 'email':
+        query.where('email=:email', { email: toFind });
+        break;
+      case 'id':
+        query.where('id=:userId', { userId: toFind });
+        break;
+    }
+
+    const user = await query.getOne();
 
     if (!user) {
-      throw new NotFoundException(`User with email '${email}' not found`);
+      throw new NotFoundException(`User with identifier '${toFind}' not found`);
     }
 
     return user;
   }
 
   async register(createUserDto: CreateUserDto) {
+    const email = createUserDto.email.trim();
+    const name = createUserDto.name.trim();
+    const lastName = createUserDto.lastName.trim();
+
     const user = this.userRepository.create({
-      ...createUserDto,
+      email,
+      name,
+      lastName,
       password: bcrypt.hashSync(createUserDto.password, 10),
     });
 
@@ -98,7 +111,9 @@ export class AuthService {
   async login(loginUserDto: LoginUserDto) {
     let user: User;
     try {
-      user = await this.findOneByEmail(loginUserDto.email, {
+      user = await this.findOneBy({
+        method: 'email',
+        toFind: loginUserDto.email,
         selectPassword: true,
         selectVerified: true,
       });
@@ -122,11 +137,17 @@ export class AuthService {
     };
   }
 
-  async verify({ token }: VerifyUserDto) {
+  async verifyEmail({ token }: VerifyUserDto) {
     try {
       const { userId }: AuthJwtPayload = this.jwtService.verify(token);
-      const user = await this.findOne(userId);
+      const user = await this.findOneBy({
+        method: 'id',
+        toFind: userId,
+        selectPassword: true,
+        selectVerified: true,
+      });
 
+      if (user.verified) return 'Usuario ya verificado';
       user.verified = true;
       await this.userRepository.save(user);
       return 'Usuario verificado exitosamente. Ya puedes iniciar sesión';

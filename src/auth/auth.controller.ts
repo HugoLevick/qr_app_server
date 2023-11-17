@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Query, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -10,10 +19,20 @@ import {
   RequestPasswordEmailDto,
   ResetPasswordDto,
 } from './dto/reset-password.dto';
+import { RolesEnum } from './enums/roles.enum';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Auth(RolesEnum.ADMIN)
+  @Get('/user/:id')
+  findOneById(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.authService.findOneBy({
+      method: 'id',
+      toFind: userId,
+    });
+  }
 
   @HttpCode(201)
   @Post('register')
@@ -36,7 +55,7 @@ export class AuthController {
 
   @Get('verify')
   verifyUser(@Query() verifyUserDto: VerifyUserDto) {
-    return this.authService.verify(verifyUserDto);
+    return this.authService.verifyEmail(verifyUserDto);
   }
 
   @Post('requestPasswordEmail')
