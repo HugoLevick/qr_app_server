@@ -7,6 +7,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Delete,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -66,5 +67,23 @@ export class AuthController {
   @Post('resetPassword')
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Auth(RolesEnum.ADMIN)
+  @Delete('/user/:id')
+  delete(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.authService.deleteOneById(userId);
+  }
+
+  @Auth(RolesEnum.ADMIN)
+  @Get('access/logs')
+  getAccessLogs() {
+    return this.authService.getAccessLogs();
+  }
+
+  @Auth(RolesEnum.ADMIN)
+  @Post('access/allow/:id')
+  allowAccess(@Param('id', ParseUUIDPipe) userId: string) {
+    return this.authService.allowAccess(userId);
   }
 }

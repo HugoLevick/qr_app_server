@@ -25,6 +25,7 @@ import {
   ResetPasswordDto,
 } from './dto/reset-password.dto';
 import { PasswordReset } from './entities/password-reset.entity';
+import { AccessLog } from './entities/access-log.entity';
 
 interface UserFindOptions {
   method: 'email' | 'id';
@@ -40,6 +41,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(PasswordReset)
     private readonly passwordResetRepository: Repository<PasswordReset>,
+    @InjectRepository(AccessLog)
+    private readonly accessLogRepository: Repository<AccessLog>,
     private readonly mailService: MailService,
     private readonly jwtService: JwtService,
   ) {}
@@ -225,5 +228,45 @@ export class AuthService {
         'No se pudo cambiar la contraseña',
       );
     }
+  }
+
+  async deleteOneById(id: string) {
+    const user = await this.findOneBy({
+      method: 'id',
+      toFind: id,
+    });
+
+    try {
+      await this.userRepository.softDelete(id);
+      return { message: 'User deleted successfully' };
+    } catch (error) {
+      handleDbError(error);
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async allowAccess(userId: string) {
+    const user = await this.findOneBy({
+      method: 'id',
+      toFind: userId,
+    });
+
+    const accessLog = this.accessLogRepository.create({
+      user,
+    });
+
+    try {
+      await this.accessLogRepository.insert(accessLog);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async getAccessLogs() {
+    return this.accessLogRepository.find({
+      relations: { user: true },
+    });
   }
 }

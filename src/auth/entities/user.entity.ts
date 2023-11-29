@@ -1,6 +1,13 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { RolesEnum } from '../enums/roles.enum';
 import { PasswordReset } from './password-reset.entity';
+import { AccessLog } from './access-log.entity';
 
 @Entity('users')
 export class User {
@@ -27,4 +34,10 @@ export class User {
 
   @OneToMany(() => PasswordReset, (passwordReset) => passwordReset.user)
   passwordResets: PasswordReset[];
+
+  @OneToMany(() => AccessLog, (accessLog) => accessLog.user)
+  accessLogs: AccessLog[];
+
+  @DeleteDateColumn({ select: false })
+  deletedAt?: Date;
 }
